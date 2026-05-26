@@ -668,14 +668,19 @@ Rispondi SOLO con JSON valido:
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         contents:[{parts:[{text:prompt}]}],
-        generationConfig:{temperature:0.85,maxOutputTokens:1000}
+        generationConfig:{temperature:0.85,maxOutputTokens:2048}
       })
     });
     const data=await res.json();
     if(!res.ok)throw new Error(data.error?.message||`Errore ${res.status}`);
     const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    // Estrai JSON in modo robusto
     const clean=raw.replace(/```json|```/g,'').trim();
-    const parsed=JSON.parse(clean);
+    const jsonStart=clean.indexOf('{');
+    const jsonEnd=clean.lastIndexOf('}');
+    if(jsonStart===-1||jsonEnd===-1)throw new Error('Risposta non valida dal modello. Riprova.');
+    const jsonStr=clean.slice(jsonStart,jsonEnd+1);
+    const parsed=JSON.parse(jsonStr);
     S.currentData=parsed;
     renderGame(parsed);
   }catch(err){
